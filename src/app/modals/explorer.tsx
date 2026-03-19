@@ -3,12 +3,21 @@ import { useAgent } from '../useCases/useAgent';
 import { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../utils/appContext';
 import Flow from '../components/flow';
+import { IonIcon, useIonModal } from '@ionic/react';
+import { terminalOutline } from 'ionicons/icons';
+import WebsocketConsole from './websocketConsole';
 
 const Context = () => {
   const { selectedKey } = useAgent();
 
   const { colorScheme, graph, requestGraph, rankingFilter } =
     useContext(AppContext);
+  const [presentSocketConsole, dismissSocketConsole] = useIonModal(
+    WebsocketConsole,
+    {
+      onDismiss: () => dismissSocketConsole(),
+    },
+  );
 
   const [peekGraphKey, setPeekGraphKey] = useState<string | null | undefined>();
 
@@ -44,6 +53,13 @@ const Context = () => {
 
   return (
     <PageShell
+      tools={[
+        {
+          label: 'WebSocket console',
+          renderIcon: () => <IonIcon slot="icon-only" icon={terminalOutline} />,
+          action: () => presentSocketConsole(),
+        },
+      ]}
       renderBody={() => (
         <>
           {!!whichKey && (

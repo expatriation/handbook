@@ -72,6 +72,11 @@ const App: React.FC = () => {
   } | null>('flow-graph', null);
 
   const [rankingFilter, setRankingFilter] = useState(0);
+  const [latestSocketResponse, setLatestSocketResponse] = useState<{
+    receivedAt: string;
+    payload: unknown;
+    raw: string;
+  } | null>(null);
 
   const { sendJsonMessage, readyState } = useWebSocket(
     `wss://${selectedNode}`,
@@ -82,7 +87,26 @@ const App: React.FC = () => {
       shouldReconnect: () => true,
       share: true,
       onMessage: (event) => {
-        const { type, body } = JSON.parse(event.data);
+        let parsedData: any;
+
+        try {
+          parsedData = JSON.parse(event.data);
+        } catch {
+          setLatestSocketResponse({
+            receivedAt: new Date().toISOString(),
+            payload: null,
+            raw: event.data,
+          });
+          return;
+        }
+
+        const { type, body } = parsedData;
+
+        setLatestSocketResponse({
+          receivedAt: new Date().toISOString(),
+          payload: parsedData,
+          raw: event.data,
+        });
 
         switch (type) {
           case 'inv_block':
@@ -399,6 +423,7 @@ const App: React.FC = () => {
     selectedNode,
     setSelectedNode,
     colorScheme,
+    latestSocketResponse,
   };
 
   useEffect(() => {
