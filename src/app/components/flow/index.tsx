@@ -58,6 +58,11 @@ const pathLeafName = (value: string) => {
   return parts.at(-1) ?? value;
 };
 
+const trimPubkeyDisplay = (value: string) => {
+  const trimmedValue = value.replace(/0+$/g, '');
+  return trimmedValue.length > 0 ? trimmedValue : value;
+};
+
 function FlowMap({
   forKey,
   setForKey,
@@ -369,6 +374,7 @@ const TreeBranch = ({
   const [expanded, setExpanded] = useState(true);
 
   const isCurrent = branch.node.pubkey === currentKey;
+  const trimmedPubkey = trimPubkeyDisplay(branch.node.pubkey);
   const memoEdges = branch.outgoing.filter((edge) => Boolean(edge.memo?.trim()));
   const hasMemo = Boolean(branch.node.memo?.trim()) || memoEdges.length > 0;
   const hasChildren = branch.children.length > 0;
@@ -382,29 +388,36 @@ const TreeBranch = ({
         marginBottom: 8,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
-        <IonButton
-          size="small"
-          fill={isCurrent ? 'solid' : 'outline'}
+      <IonList inset={true}>
+        <IonItem
+          button={true}
+          detail={true}
+          color={isCurrent ? 'primary' : undefined}
           onClick={() => onNodeClick(branch.node)}
         >
-          <IonIcon icon={hasChildren ? folderOutline : documentOutline} slot="start" />
-          <code>{pathLeafName(branch.node.pubkey)}</code>
-        </IonButton>
-        <IonBadge color="medium">{branch.node.pubkey}</IonBadge>
-        {branch.children.length > 0 && (
-          <IonButton size="small" fill="clear" onClick={() => setExpanded((state) => !state)}>
-            {expanded ? 'Collapse' : 'Expand'} {branch.children.length}
-          </IonButton>
+          <IonIcon
+            icon={hasChildren ? folderOutline : documentOutline}
+            slot="start"
+            color={isCurrent ? 'light' : 'medium'}
+          />
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <code>{pathLeafName(trimmedPubkey)}</code>
+            <code style={{ opacity: 0.75 }}>{trimmedPubkey}</code>
+          </div>
+        </IonItem>
+        {hasChildren && (
+          <IonItem button={true} detail={false} onClick={() => setExpanded((state) => !state)}>
+            <code>{expanded ? 'Collapse' : 'Expand'} {branch.children.length}</code>
+          </IonItem>
         )}
-      </div>
+      </IonList>
 
       {expanded && hasMemo && (
         <IonList inset={true}>
