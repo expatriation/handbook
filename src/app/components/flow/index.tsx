@@ -63,6 +63,35 @@ const trimPubkeyDisplay = (value: string) => {
   return trimmedValue.length > 0 ? trimmedValue : value;
 };
 
+const BASE64_SEGMENT_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
+
+const toPaddedBase64 = (value: string) => {
+  const paddingLength = (4 - (value.length % 4)) % 4;
+  return `${value}${'='.repeat(paddingLength)}`;
+};
+
+const encodePathSegment = (segment: string) => {
+  const trimmedSegment = segment.trim();
+
+  if (!trimmedSegment) {
+    return '';
+  }
+
+  const candidate = toPaddedBase64(trimmedSegment);
+  if (BASE64_SEGMENT_PATTERN.test(candidate)) {
+    try {
+      atob(candidate);
+      return candidate;
+    } catch {
+      // Not valid base64 content; encode as text below.
+    }
+  }
+
+  const utf8Bytes = new TextEncoder().encode(trimmedSegment);
+  const binaryValue = Array.from(utf8Bytes, (byte) => String.fromCharCode(byte)).join('');
+  return btoa(binaryValue);
+};
+
 const normalizePath = (value: string) => {
   const stripped = value.trim().replace(/^https?:\/\//, '');
 
@@ -70,8 +99,17 @@ const normalizePath = (value: string) => {
     return '/';
   }
 
-  const withLeadingSlash = stripped.startsWith('/') ? stripped : `/${stripped}`;
-  return withLeadingSlash.replace(/\/{2,}/g, '/');
+  const segments = stripped
+    .replace(/^\/+/, '')
+    .split('/')
+    .map(encodePathSegment)
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return '/';
+  }
+
+  return `/${segments.join('/')}`;
 };
 
 const PathAddressBar = ({
