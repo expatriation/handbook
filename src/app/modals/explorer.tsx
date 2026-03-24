@@ -1,15 +1,23 @@
 import { PageShell } from '../components/pageShell';
-import { useAgent } from '../useCases/useAgent';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { AppContext } from '../utils/appContext';
 import Flow from '../components/flow';
 import { IonIcon, useIonModal } from '@ionic/react';
 import { terminalOutline } from 'ionicons/icons';
 import WebsocketConsole from './websocketConsole';
 
-const Context = () => {
-  const { selectedKey } = useAgent();
+const toDisplayPath = (value: string) => {
+  const trimmedValue = value.replace(/0+=+$/g, '');
+  return trimmedValue || '/';
+};
 
+const toRequestPath = (value: string) => {
+  const displayPath = toDisplayPath(value);
+  const normalized = displayPath === '/' ? displayPath : `${displayPath.replace(/\/+$/g, '')}/`;
+  return `${normalized.padEnd(43, '0')}=`;
+};
+
+const Context = () => {
   const { colorScheme, graph, requestGraph, rankingFilter } =
     useContext(AppContext);
   const [presentSocketConsole, dismissSocketConsole] = useIonModal(
@@ -19,17 +27,13 @@ const Context = () => {
     },
   );
 
-  const [peekGraphKey, setPeekGraphKey] = useState<string | null | undefined>();
-
-  const whichKey =
-    peekGraphKey ||
-    selectedKey ||
-    '0000000000000000000000000000000000000000000=';
+  const [peekGraphKey, setPeekGraphKey] = useState<string>('/');
+  const whichKey = useMemo(() => toDisplayPath(peekGraphKey), [peekGraphKey]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       if (whichKey) {
-        requestGraph(whichKey);
+        requestGraph(toRequestPath(whichKey));
       }
     }, 0);
     return () => {
@@ -40,7 +44,7 @@ const Context = () => {
   useEffect(() => {
     const resultHandler = (data: any) => {
       if (whichKey && data.detail) {
-        requestGraph(whichKey);
+        requestGraph(toRequestPath(whichKey));
       }
     };
 

@@ -62,16 +62,21 @@ const trimPubkeyDisplay = (value: string) => {
   return trimmedValue.length > 0 ? trimmedValue : value;
 };
 
+const toDisplayPath = (value: string) => {
+  const trimmed = trimPubkeyDisplay(value);
+  return trimmed || '/';
+};
+
 const buildPathSegments = (value: string) => {
   if (!isValidAbsolutePath(value) || value === '/') {
     return [];
   }
 
   const parts = value.split('/').filter(Boolean);
-  let currentPath = '';
+  let currentPath = '/';
 
   return parts.map((segment) => {
-    currentPath = `${currentPath}/${segment}`;
+    currentPath = `${currentPath}${segment}/`;
     return {
       label: segment,
       value: currentPath,
@@ -115,7 +120,7 @@ function FlowMap({
         if (node?.id === -1) {
           presentPointModal();
         } else if (node?.pubkey) {
-          setForKey(node.pubkey);
+          setForKey(toDisplayPath(node.pubkey));
         }
       }
     },
@@ -123,8 +128,9 @@ function FlowMap({
   );
 
   const initialNode = useMemo(() => {
-    const node = nodes.find((n) => n.pubkey === forKey);
-    return node && isValidAbsolutePath(node.pubkey) ? node : null;
+    const displayKey = toDisplayPath(forKey);
+    const node = nodes.find((n) => toDisplayPath(n.pubkey) === displayKey);
+    return node && isValidAbsolutePath(toDisplayPath(node.pubkey)) ? node : null;
   }, [nodes, forKey]);
 
   useEffect(() => {
@@ -137,7 +143,7 @@ function FlowMap({
   });
 
   const clickableSegments = useMemo(() => {
-    return buildPathSegments(forKey);
+    return buildPathSegments(toDisplayPath(forKey));
   }, [forKey]);
 
   const [collapsedToImmediate, setCollapsedToImmediate] = useState(false);
@@ -317,7 +323,7 @@ function FlowMap({
               </div>
             ))}
             {clickableSegments.length === 0 && (
-              <code style={{ opacity: 0.75 }}>{forKey}</code>
+              <code style={{ opacity: 0.75 }}>/</code>
             )}
           </div>
         </IonCardSubtitle>
@@ -407,8 +413,8 @@ const TreeBranch = ({
 }) => {
   const [expanded, setExpanded] = useState(true);
 
-  const isCurrent = branch.node.pubkey === currentKey;
-  const trimmedPubkey = trimPubkeyDisplay(branch.node.pubkey);
+  const trimmedPubkey = toDisplayPath(branch.node.pubkey);
+  const isCurrentNode = toDisplayPath(branch.node.pubkey) === toDisplayPath(currentKey);
   const memoEdges = branch.outgoing.filter((edge) => Boolean(edge.memo?.trim()));
   const hasMemo = Boolean(branch.node.memo?.trim()) || memoEdges.length > 0;
   const hasChildren = branch.children.length > 0;
@@ -426,13 +432,13 @@ const TreeBranch = ({
         <IonItem
           button={true}
           detail={true}
-          color={isCurrent ? 'primary' : undefined}
+          color={isCurrentNode ? 'primary' : undefined}
           onClick={() => onNodeClick(branch.node)}
         >
           <IonIcon
             icon={hasChildren ? folderOutline : documentOutline}
             slot="start"
-            color={isCurrent ? 'light' : 'medium'}
+            color={isCurrentNode ? 'light' : 'medium'}
           />
           <div
             style={{
