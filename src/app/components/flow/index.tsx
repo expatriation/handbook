@@ -4,12 +4,18 @@ import {
   IonButton,
   IonCard,
   IonCardContent,
+  IonContent,
   IonCardHeader,
   IonCardSubtitle,
+  IonButtons,
+  IonHeader,
   IonIcon,
   IonItem,
   IonList,
+  IonModal,
   IonRange,
+  IonToolbar,
+  IonPage,
   useIonModal,
 } from '@ionic/react';
 import { useKeyDetails } from '../keyChip';
@@ -82,6 +88,82 @@ const buildPathSegments = (value: string) => {
       value: currentPath,
     };
   });
+};
+
+const getYouTubeVideoId = (value?: string) => {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value.trim());
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const shortId = url.pathname.split('/').filter(Boolean)[0];
+      return shortId && /^[\w-]{11}$/.test(shortId) ? shortId : null;
+    }
+
+    if (!host.endsWith('youtube.com')) {
+      return null;
+    }
+
+    const segments = url.pathname.split('/').filter(Boolean);
+    if (segments[0] === 'shorts' || segments[0] === 'embed') {
+      const embeddedId = segments[1];
+      return embeddedId && /^[\w-]{11}$/.test(embeddedId) ? embeddedId : null;
+    }
+
+    const watchId = url.searchParams.get('v');
+    return watchId && /^[\w-]{11}$/.test(watchId) ? watchId : null;
+  } catch {
+    return null;
+  }
+};
+
+const YouTubeShortModal = ({
+  onDismiss,
+  videoId,
+}: {
+  onDismiss: () => void;
+  videoId: string;
+}) => {
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton color="medium" onClick={() => onDismiss()}>
+              Close
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent>
+        <IonCard>
+          <IonCardContent>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: '177.78%' }}>
+              <iframe
+                title="Memo YouTube video"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+          </IonCardContent>
+        </IonCard>
+      </IonContent>
+    </IonPage>
+  );
 };
 
 function FlowMap({
@@ -418,6 +500,12 @@ const TreeBranch = ({
   const memoEdges = branch.outgoing.filter((edge) => Boolean(edge.memo?.trim()));
   const hasMemo = Boolean(branch.node.memo?.trim()) || memoEdges.length > 0;
   const hasChildren = branch.children.length > 0;
+  const nodeMemoVideoId = getYouTubeVideoId(branch.node.memo);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
+  const openVideoModal = (videoId: string) => {
+    setActiveVideoId(videoId);
+  };
 
   return (
     <div
@@ -433,7 +521,13 @@ const TreeBranch = ({
           button={true}
           detail={true}
           color={isCurrentNode ? 'primary' : undefined}
-          onClick={() => onNodeClick(branch.node)}
+          onClick={() => {
+            if (nodeMemoVideoId) {
+              openVideoModal(nodeMemoVideoId);
+              return;
+            }
+            onNodeClick(branch.node);
+          }}
         >
           <IonIcon
             icon={hasChildren ? folderOutline : documentOutline}
@@ -461,11 +555,27 @@ const TreeBranch = ({
 
       {expanded && hasMemo && (
         <IonList inset={true}>
-          <IonItem lines="none">
+          <IonItem
+            lines="none"
+            button={Boolean(nodeMemoVideoId)}
+            detail={false}
+            onClick={() => nodeMemoVideoId && openVideoModal(nodeMemoVideoId)}
+          >
             <code>memo: {branch.node.memo}</code>
           </IonItem>
           {memoEdges.map((edge, edgeIndex) => (
-            <IonItem key={`${branch.node.id}-${edge.target}-${edge.height}-${edgeIndex}`} lines="none">
+            <IonItem
+              key={`${branch.node.id}-${edge.target}-${edge.height}-${edgeIndex}`}
+              lines="none"
+              button={Boolean(getYouTubeVideoId(edge.memo))}
+              detail={false}
+              onClick={() => {
+                const videoId = getYouTubeVideoId(edge.memo);
+                if (videoId) {
+                  openVideoModal(videoId);
+                }
+              }}
+            >
               <code>memo: {edge.memo}</code>
             </IonItem>
           ))}
@@ -484,6 +594,14 @@ const TreeBranch = ({
           ))}
         </div>
       )}
+      <IonModal isOpen={Boolean(activeVideoId)} onDidDismiss={() => setActiveVideoId(null)}>
+        {activeVideoId && (
+          <YouTubeShortModal
+            onDismiss={() => setActiveVideoId(null)}
+            videoId={activeVideoId}
+          />
+        )}
+      </IonModal>
     </div>
   );
 };
