@@ -461,6 +461,8 @@ const TreeBranch = ({
   const [activeMemo, setActiveMemo] = useState<MemoContent | null>(null);
   const memoContent = getMemoContent(branch.node.memo);
   const memoIcon = getMemoIcon(memoContent);
+  const isCurrentNodeWithoutMemo = isCurrentNode && !memoContent;
+  const isNodeButtonEnabled = !isCurrentNodeWithoutMemo;
 
   return (
     <div
@@ -473,10 +475,14 @@ const TreeBranch = ({
     >
       <IonList inset={true}>
         <IonItem
-          button={true}
+          button={isNodeButtonEnabled}
           detail={true}
+          disabled={!isNodeButtonEnabled}
           color={isCurrentNode ? 'primary' : undefined}
           onClick={() => {
+            if (!isNodeButtonEnabled) {
+              return;
+            }
             if (isCurrentNode && memoContent) {
               setActiveMemo(memoContent);
               return;
@@ -506,34 +512,14 @@ const TreeBranch = ({
 
       {branch.children.length > 0 && (
         <div style={{ marginTop: 4 }}>
-          {branch.children.map((child, childIndex) => {
-            const connectingEdges = branch.outgoing.filter((edge) => edge.target === child.node.id);
-
-            return (
-              <div key={`${branch.node.id}-${child.node.id}-${childIndex}`}>
-                {connectingEdges.length > 0 && (
-                  <IonList inset={true}>
-                    {connectingEdges.map((edge, edgeIndex) => (
-                      <IonItem
-                        key={`${branch.node.id}-${child.node.id}-edge-${edge.height}-${edge.time}-${edgeIndex}`}
-                        lines="none"
-                        detail={false}
-                      >
-                        <code style={{ opacity: 0.8 }}>
-                          edge: h{edge.height} • t{edge.time}
-                        </code>
-                      </IonItem>
-                    ))}
-                  </IonList>
-                )}
-                <TreeBranch
-                  branch={child}
-                  onNodeClick={onNodeClick}
-                  currentKey={currentKey}
-                />
-              </div>
-            );
-          })}
+          {branch.children.map((child) => (
+            <TreeBranch
+              key={`${branch.node.id}-${child.node.id}`}
+              branch={child}
+              onNodeClick={onNodeClick}
+              currentKey={currentKey}
+            />
+          ))}
         </div>
       )}
 
