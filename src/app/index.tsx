@@ -42,6 +42,62 @@ import { DEFAULT_CRUZBIT_NODE } from './utils/constants';
 
 setupIonicReact({ mode: 'md' });
 
+interface InvBlockMessage {
+  type: 'inv_block';
+  body: { block_ids: string[] };
+}
+
+interface TipHeaderMessage {
+  type: 'tip_header';
+  body: BlockIdHeaderPair;
+}
+
+interface BlockMessage {
+  type: 'block';
+  body: { block: Block };
+}
+
+interface TransactionMessage {
+  type: 'transaction';
+  body: { transaction_id: string; transaction: Transaction };
+}
+
+interface PushTransactionResultMessage {
+  type: 'push_transaction_result';
+  body: { transaction_id: string; error: string };
+}
+
+interface PublicKeyTransactionsMessage {
+  type: 'public_key_transactions';
+  body: {
+    public_key: string;
+    filter_blocks?: Array<{ transactions: Transaction[] }>;
+  };
+}
+
+interface FilterTransactionQueueMessage {
+  type: 'filter_transaction_queue';
+  body: { transactions: Transaction[] };
+}
+
+type SocketMessage =
+  | InvBlockMessage
+  | TipHeaderMessage
+  | BlockMessage
+  | TransactionMessage
+  | PushTransactionResultMessage
+  | PublicKeyTransactionsMessage
+  | FilterTransactionQueueMessage;
+
+const isSocketMessage = (value: unknown): value is SocketMessage => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const message = value as { type?: unknown; body?: unknown };
+  return typeof message.type === 'string' && message.body !== undefined;
+};
+
 const App: React.FC = () => {
   const [selectedNode, setSelectedNode] = usePersistentState(
     'selected-node',
@@ -96,7 +152,7 @@ const App: React.FC = () => {
       shouldReconnect: () => true,
       share: true,
       onMessage: (event) => {
-        let parsedData: any;
+        let parsedData: unknown;
 
         try {
           parsedData = JSON.parse(event.data);
@@ -104,6 +160,15 @@ const App: React.FC = () => {
           setLatestSocketResponse({
             receivedAt: new Date().toISOString(),
             payload: null,
+            raw: event.data,
+          });
+          return;
+        }
+
+        if (!isSocketMessage(parsedData)) {
+          setLatestSocketResponse({
+            receivedAt: new Date().toISOString(),
+            payload: parsedData,
             raw: event.data,
           });
           return;
@@ -120,10 +185,7 @@ const App: React.FC = () => {
         switch (type) {
           case 'inv_block':
             document.dispatchEvent(
-              new CustomEvent<{
-                transaction_id: string;
-                error: string;
-              }>('inv_block', { detail: body.block_ids }),
+              new CustomEvent<string[]>('inv_block', { detail: body.block_ids }),
             );
             requestTipHeader();
             break;
@@ -166,9 +228,7 @@ const App: React.FC = () => {
               }>('public_key_transactions', {
                 detail: {
                   public_key: body.public_key,
-                  transactions:
-                    body.filter_blocks?.flatMap((i: any) => i.transactions) ??
-                    [],
+                  transactions: body.filter_blocks?.flatMap((i) => i.transactions) ?? [],
                 },
               }),
             );
@@ -256,7 +316,7 @@ const App: React.FC = () => {
         type: 'push_transaction',
         body: {
           transaction,
-        } as any,
+        },
       });
 
       return socketEventListener<{

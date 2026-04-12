@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import { Dispatch, SetStateAction } from 'react';
 import {
   Block,
   BlockIdHeaderPair,
@@ -9,36 +10,40 @@ import {
 
 interface AppState {
   publicKeys: string[][];
-  setPublicKeys: (keys: string[][]) => void;
+  setPublicKeys: Dispatch<SetStateAction<string[][]>>;
   selectedKeyIndex: [number, number];
-  setSelectedKeyIndex: (index: [number, number]) => void;
+  setSelectedKeyIndex: Dispatch<SetStateAction<[number, number]>>;
   requestTipHeader: () => void;
   tipHeader?: BlockIdHeaderPair;
-  setTipHeader: (tipHeader: BlockIdHeaderPair) => void;
+  setTipHeader: Dispatch<SetStateAction<BlockIdHeaderPair | undefined>>;
   requestBlockByHeight: (height: number) => void;
   requestBlockById: (block_id: string) => void;
   currentBlock?: Block | null;
-  setCurrentBlock: (currentBlock: Block) => void;
+  setCurrentBlock: Dispatch<SetStateAction<Block | null>>;
   genesisBlock?: Block | null;
-  setGenesisBlock: (genesisBlock: Block) => void;
+  setGenesisBlock: Dispatch<SetStateAction<Block | null>>;
   requestGraph: (publicKeyB64: string) => void;
   graph: {
     nodes: GraphNode[];
     links: GraphLink[];
   } | null;
-  setGraph: (graph: { nodes: GraphNode[]; links: GraphLink[] } | null) => void;
+  setGraph: Dispatch<
+    SetStateAction<{ nodes: GraphNode[]; links: GraphLink[] } | null>
+  >;
   navigatorPublicKey: string;
-  setNavigatorPublicKey: (publicKey: string) => void;
+  setNavigatorPublicKey: Dispatch<SetStateAction<string>>;
   transactionRange: {
     startHeight: number;
     endHeight: number;
     limit: number;
   };
-  setTransactionRange: (range: {
-    startHeight: number;
-    endHeight: number;
-    limit: number;
-  }) => void;
+  setTransactionRange: Dispatch<
+    SetStateAction<{
+      startHeight: number;
+      endHeight: number;
+      limit: number;
+    }>
+  >;
   requestTransaction: (
     transaction_id: string,
     resultHandler: (transaction: Transaction) => void,
@@ -65,7 +70,7 @@ interface AppState {
     resultHandler: (transactions: Transaction[]) => void,
   ) => (() => void) | undefined;
   selectedNode: string;
-  setSelectedNode: (node: string) => void;
+  setSelectedNode: Dispatch<SetStateAction<string>>;
   colorScheme: 'light' | 'dark';
   latestSocketResponse: {
     receivedAt: string;

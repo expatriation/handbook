@@ -3,6 +3,27 @@ import fromDot from 'ngraph.fromdot';
 import { sha3_256 } from 'js-sha3';
 import { GraphLink, GraphNode, Transaction } from './appTypes';
 
+interface DotNode {
+  id: number;
+  data: {
+    pubkey: string;
+    label: string;
+    memo?: string;
+    balance: string | number;
+  };
+}
+
+interface DotLink {
+  fromId: number;
+  toId: number;
+  data: {
+    weight: string | number;
+    height: string | number;
+    time: string | number;
+    memo?: string;
+  };
+}
+
 export const parseGraphDOT = (
   dotString: string,
   forKey: string,
@@ -12,7 +33,7 @@ export const parseGraphDOT = (
 
   const nodes: GraphNode[] = [];
 
-  graph.forEachNode((node: any) => {
+  graph.forEachNode((node: DotNode) => {
     const pubkey = node.data.pubkey as string;
     const label = node.data.label as string;
     const memo = node.data.memo as string | undefined;
@@ -32,7 +53,7 @@ export const parseGraphDOT = (
   });
 
   const links: GraphLink[] = [];
-  graph.forEachLink((link: any) => {
+  graph.forEachLink((link: DotLink) => {
     const source = link.fromId;
     const target = link.toId;
 

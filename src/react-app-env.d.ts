@@ -1,4 +1,5 @@
-/// <reference types="react-scripts" />
+/// <reference types="vite/client" />
+/// <reference types="vitest/globals" />
 
 declare module 'epoch-timeago';
 declare module 'ngraph.fromdot';

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Candid Handbook" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Candid Handbook</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/core@3.0.2/dist/zxcvbn-ts.js"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-common@3.0.2/dist/zxcvbn-ts.js"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-en@3.0.2/dist/zxcvbn-ts.js"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-fr@3.0.2/dist/zxcvbn-ts.js"
+    ></script>
+    <script>
+      ;(function () {
+        const options = {
+          translations: zxcvbnts['language-en'].translations,
+          graphs: zxcvbnts['language-common'].adjacencyGraphs,
+          dictionary: {
+            ...zxcvbnts['language-common'].dictionary,
+            ...zxcvbnts['language-en'].dictionary,
+            ...zxcvbnts['language-fr'].dictionary,
+          },
+        }
+        zxcvbnts.core.zxcvbnOptions.setOptions(options)
+      })()
+    </script>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
