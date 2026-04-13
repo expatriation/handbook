@@ -3,8 +3,6 @@ import {
   IonCard,
   IonCardContent,
   IonCardHeader,
-  IonCardSubtitle,
-  IonCardTitle,
   IonText,
 } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -232,10 +230,14 @@ const MemoFeed = ({
           >
             <IonCard>
               <IonCardHeader>
-                <IonCardSubtitle>{tx.txId.slice(0, 14)}…</IonCardSubtitle>
-                <IonCardTitle style={{ fontSize: 14 }}>
-                  series: {tx.series ?? 'n/a'} · time: {tx.time}
-                </IonCardTitle>
+                <IonText color="medium">
+                  <p style={{ margin: 0, fontSize: 11, lineHeight: 1.4 }}>
+                    from: {tx.from ?? 'n/a'}<br />
+                    to: {tx.to}<br />
+                    time: {tx.time}<br />
+                    series: {tx.series ?? 'n/a'}
+                  </p>
+                </IonText>
               </IonCardHeader>
               <IonCardContent>
                 {entry.kind === 'drill_in' && (
