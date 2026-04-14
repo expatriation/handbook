@@ -10,8 +10,7 @@ import { Transaction } from '../utils/appTypes';
 import { useContext } from 'react';
 import { AppContext } from '../utils/appContext';
 import { MinFeeCruzbits, MinAmountCruzbits } from '../utils/constants';
-
-window.Buffer = window.Buffer || require('buffer').Buffer;
+import { Buffer } from 'buffer';
 
 /**
  * Converts a user-supplied passphrase into a 24-word BIP39 mnemonic
