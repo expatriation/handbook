@@ -206,8 +206,10 @@ const MemoFeed = ({
         }
       }}
       style={{
+        display: 'flex',
+        flexDirection: 'column',
         overflowY: 'auto',
-        height: 'calc(100vh - 220px)',
+        height: '100%',
         scrollSnapType: 'y mandatory',
       }}
     >
@@ -220,9 +222,21 @@ const MemoFeed = ({
           <div
             key={entry.entryId}
             id={`feed-item-${entry.entryId}`}
-            style={{ scrollSnapAlign: 'start', minHeight: 'calc(100vh - 220px)' }}
+            style={{
+              scrollSnapAlign: 'start',
+              minHeight: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
           >
-            <IonCard>              
+            <IonCard
+              style={{
+                margin: 0,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
                 <IonCardHeader>
                   <IonCardSubtitle><code>{tx.txId}</code></IonCardSubtitle>
                   {entry.kind !== 'memo' && (
@@ -238,7 +252,14 @@ const MemoFeed = ({
                     </IonCardTitle>
                   )}
                 </IonCardHeader>              
-              <IonCardContent>
+              <IonCardContent
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
                 {entry.kind === 'drill_in' && (
                   <>
                     <IonText>
@@ -284,7 +305,14 @@ const MemoFeed = ({
                         <iframe
                           title="Memo web content"
                           src={content.url}
-                          style={{ width: '100%', height: '65vh', border: 'none', borderRadius: 8 }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            flex: 1,
+                            minHeight: 0,
+                            border: 'none',
+                            borderRadius: 8,
+                          }}
                           referrerPolicy="strict-origin-when-cross-origin"
                           sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                         />

@@ -195,7 +195,14 @@ const Explore = () => {
         },
       ]}
       renderBody={() => (
-        <>
+        <div
+          style={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
           {!!whichKey && (
             <>
               <div
@@ -235,7 +242,7 @@ const Explore = () => {
                 </div>
               </div>
               {!!graph && (
-                <>
+                <div style={{ flex: 1, minHeight: 0 }}>
                   {mode === 'tree' && (
                     <DirTree
                       forKey={whichKey}
@@ -266,11 +273,11 @@ const Explore = () => {
                       }}
                     />
                   )}
-                </>
+                </div>
               )}
             </>
           )}
-        </>
+        </div>
       )}
     />
   );
