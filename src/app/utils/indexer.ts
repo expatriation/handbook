@@ -36,7 +36,7 @@ const diminishingOrders = (height: number) => {
   return results;
 };
 
-const inflateNodes = (pubKey: string) => {
+export const inflateNodes = (pubKey: string) => {
   let trimmed = pubKey.replace(/^[/+0=]+|[/+0=]+$/g, '');
   let splitPK = trimmed.split('/');
 

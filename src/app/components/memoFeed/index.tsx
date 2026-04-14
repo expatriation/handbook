@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Transaction } from '../../utils/appTypes';
 import { getMemoContent } from '../../utils/memoContent';
 import { transactionID } from '../../utils/compat';
+import { inflateNodes } from '../../utils/indexer';
 
 type FeedItem = Transaction & {
   txId: string;
@@ -36,7 +37,7 @@ const normalizePath = (value?: string) => {
   return compact.endsWith('/') ? compact : `${compact}/`;
 };
 
-const isSpatialKey = (value?: string) => Boolean(value?.startsWith('/'));
+const isSpatialKey = (value?: string) => inflateNodes(value ?? "").isSpatial;
 
 const byNewest = (a: FeedItem, b: FeedItem) => {
   const aSeries = a.series ?? 0;
@@ -86,29 +87,36 @@ const buildEntries = (transactions: Transaction[]) => {
   const entries: FeedEntry[] = [];
 
   normalizeFeedTransactions(transactions).forEach((tx) => {
-    entries.push({
-      entryId: `${tx.txId}:memo`,
-      tx,
-      kind: 'memo',
-      path: normalizePath(tx.to),
-    });
 
-    if (!isSpatialKey(tx.to)) {
+    if (isSpatialKey(tx.to)) {
+      
       entries.push({
-        entryId: `${tx.txId}:drill-in`,
+        entryId: `${tx.txId}:memo`,
         tx,
-        kind: 'drill_in',
-        path: null,
+        kind: 'memo',
+        path: normalizePath(tx.to),
       });
-    }
+    
+    }else{
 
-    if (tx.from && !isSpatialKey(tx.from)) {
-      entries.push({
-        entryId: `${tx.txId}:drill-out`,
-        tx,
-        kind: 'drill_out',
-        path: null,
-      });
+      if (tx.from && tx.to) {
+        entries.push({
+          entryId: `${tx.txId}:drill-in`,
+          tx,
+          kind: 'drill_in',
+          path: null,
+        });        
+      }else if (tx.from) {
+
+        entries.push({
+          entryId: `${tx.txId}:drill-out`,
+          tx,
+          kind: 'drill_out',
+          path: null,
+        });
+
+      }
+    
     }
   });
 
@@ -214,14 +222,22 @@ const MemoFeed = ({
             id={`feed-item-${entry.entryId}`}
             style={{ scrollSnapAlign: 'start', minHeight: 'calc(100vh - 220px)' }}
           >
-            <IonCard>
-              <IonCardHeader>
-                <IonCardSubtitle>{tx.txId.slice(0, 14)}…</IonCardSubtitle>
-                <IonCardTitle style={{ fontSize: 12, lineHeight: 1.4, fontWeight: 400 }}>
-                  from: {tx.from || 'n/a'} · to: {tx.to || 'n/a'} · time: {tx.time} · series:{' '}
-                  {tx.series ?? 'n/a'}
-                </IonCardTitle>
-              </IonCardHeader>
+            <IonCard>              
+                <IonCardHeader>
+                  <IonCardSubtitle><code>{tx.txId}</code></IonCardSubtitle>
+                  {entry.kind !== 'memo' && (
+                    <IonCardTitle>
+                      <code>
+                        from: {tx.from || 'n/a'}
+                        <br /><br />
+                        to: {tx.to || 'n/a'}
+                        <br /> <br />time: {tx.time}
+                        <br /><br />
+                        series: {tx.series ?? 'n/a'}
+                      </code>
+                    </IonCardTitle>
+                  )}
+                </IonCardHeader>              
               <IonCardContent>
                 {entry.kind === 'drill_in' && (
                   <>

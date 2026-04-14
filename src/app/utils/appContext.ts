@@ -67,11 +67,6 @@ interface AppState {
   selectedNode: string;
   setSelectedNode: (node: string) => void;
   colorScheme: 'light' | 'dark';
-  latestSocketResponse: {
-    receivedAt: string;
-    payload: unknown;
-    raw: string;
-  } | null;
 }
 
 export const AppContext = createContext<AppState>({
@@ -119,7 +114,6 @@ export const AppContext = createContext<AppState>({
   selectedNode: '',
   setSelectedNode: () => {},
   colorScheme: 'light',
-  latestSocketResponse: null,
   pushTransaction: (
     to: string,
     memo: string,

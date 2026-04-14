@@ -4,8 +4,7 @@ import { AppContext } from '../utils/appContext';
 import DirTree from '../components/dirTree';
 import MemoFeed from '../components/memoFeed';
 import { IonIcon, useIonModal } from '@ionic/react';
-import { terminalOutline, addCircleOutline } from 'ionicons/icons';
-import WebsocketConsole from './console';
+import { addCircleOutline } from 'ionicons/icons';
 import Send from './send';
 import { indexTransactionsToGraph } from '../utils/indexer';
 import { Transaction } from '../utils/appTypes';
@@ -58,13 +57,6 @@ const Explore = () => {
     onDismiss: (data: string, role: string) => dismissSend(data, role),
     forKey: whichKey,
   });
-
-  const [presentSocketConsole, dismissSocketConsole] = useIonModal(
-    WebsocketConsole,
-    {
-      onDismiss: () => dismissSocketConsole(),
-    },
-  );
 
   const fetchTransactions = useCallback((
     startHeight: number,
@@ -200,11 +192,6 @@ const Explore = () => {
             icon={addCircleOutline}
           />,
           action: () => presentSendModal(),
-        },
-        {
-          label: 'WebSocket console',
-          renderIcon: () => <IonIcon slot="icon-only" icon={terminalOutline} />,
-          action: () => presentSocketConsole(),
         },
       ]}
       renderBody={() => (
