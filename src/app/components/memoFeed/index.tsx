@@ -238,7 +238,7 @@ const MemoFeed = ({
               }}
             >
                 <IonCardHeader>
-                  <IonCardSubtitle><code>{tx.txId}</code></IonCardSubtitle>
+                  {/* <IonCardSubtitle><code>{tx.txId}</code></IonCardSubtitle> */}
                   {entry.kind !== 'memo' && (
                     <IonCardTitle>
                       <code>

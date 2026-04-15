@@ -17,25 +17,6 @@ const pad44 = (input: string) => {
   return `${normalized}${'0'.repeat(Math.max(0, padLength))}=`;
 };
 
-const diminishingOrders = (height: number) => {
-  if (height === 0) {
-    return [0];
-  }
-
-  const digits = Math.floor(Math.log10(height)) + 1;
-  const results = [height];
-
-  for (let i = 0; i < digits; i += 1) {
-    const power = 10 ** (i + 1);
-    const rounded = height - (height % power);
-    if (rounded !== results[results.length - 1]) {
-      results.push(rounded);
-    }
-  }
-
-  return results;
-};
-
 export const inflateNodes = (pubKey: string) => {
   let trimmed = pubKey.replace(/^[/+0=]+|[/+0=]+$/g, '');
   let splitPK = trimmed.split('/');
@@ -87,7 +68,7 @@ type InternalNode = {
   memoTime?: number;
 };
 
-type LinkKind = 'spatial' | 'temporal' | 'periodic' | 'verbal';
+type LinkKind = 'spatial' | 'temporal' | 'verbal';
 
 type InternalLink = GraphLink & { kind: LinkKind };
 
@@ -120,7 +101,6 @@ export const indexTransactionsToGraph = (
     source: string,
     target: string,
     weight: number,
-    height: number,
     time: number,
     kind: LinkKind,
   ) => {
@@ -131,7 +111,6 @@ export const indexTransactionsToGraph = (
 
     if (previous) {
       previous.value += weight;
-      previous.height = height;
       previous.time = time;
       return;
     }
@@ -140,7 +119,6 @@ export const indexTransactionsToGraph = (
       source: sourceId,
       target: targetId,
       value: weight,
-      height,
       time,
       kind,
     });
@@ -154,7 +132,6 @@ export const indexTransactionsToGraph = (
     const txnFrom = txn.from ? pad44(txn.from) : pad44('0');
     const txnTo = pad44(txn.to);
     const txnMemo = txn.memo?.trim() ?? '';
-    const txHeight = txn.series ?? index;
 
     if (txnFrom !== selected && txnTo !== selected) {
       return;
@@ -173,7 +150,7 @@ export const indexTransactionsToGraph = (
       const additive = 10 + i;
 
       if (i === 0) {
-        linkNodes('0', path, dimensionWeight, txHeight, txn.time + additive, kind);
+        linkNodes('0', path, dimensionWeight, txn.time + additive, kind);
       }
 
       if (i + 1 < inflated.paths.length) {
@@ -182,7 +159,6 @@ export const indexTransactionsToGraph = (
           path,
           next,
           dimensionWeight,
-          txHeight,
           txn.time + additive + i + 1,
           kind,
         );
@@ -193,7 +169,6 @@ export const indexTransactionsToGraph = (
           path,
           txn.to,
           dimensionWeight,
-          txHeight,
           txn.time + additive + i + 1,
           kind,
         );
@@ -205,30 +180,11 @@ export const indexTransactionsToGraph = (
     const month = `${year}+${`${timestamp.getUTCMonth() + 1}`.padStart(2, '0')}`;
     const day = `${month}+${`${timestamp.getUTCDate()}`.padStart(2, '0')}`;
 
-    linkNodes('0', year, dimensionWeight, txHeight, txn.time + 20, 'temporal');
-    linkNodes(year, month, dimensionWeight, txHeight, txn.time + 21, 'temporal');
-    linkNodes(month, day, dimensionWeight, txHeight, txn.time + 22, 'temporal');
-    linkNodes(day, txn.to, dimensionWeight, txHeight, txn.time + 23, 'temporal');
+    linkNodes('0', year, dimensionWeight, txn.time + 20, 'temporal');
+    linkNodes(year, month, dimensionWeight, txn.time + 21, 'temporal');
+    linkNodes(month, day, dimensionWeight, txn.time + 22, 'temporal');
+    linkNodes(day, txn.to, dimensionWeight, txn.time + 23, 'temporal');
 
-    const orders = diminishingOrders(txHeight);
-    for (let j = 1; j < orders.length; j += 1) {
-      linkNodes(
-        `${orders[j - 1]}`,
-        `${orders[j]}`,
-        dimensionWeight,
-        txHeight,
-        txn.time + 30 + j,
-        'periodic',
-      );
-    }
-    linkNodes(
-      txn.to,
-      `${txHeight}`,
-      dimensionWeight,
-      txHeight,
-      txn.time + 30 + orders.length,
-      'periodic',
-    );
 
     const targetNode = nodes.get(getNodeId(txn.to));
     if (targetNode) {

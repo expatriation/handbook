@@ -43,7 +43,6 @@ export const parseGraphDOT = (
       source,
       target,
       value: Number(link.data.weight),
-      height: Number(link.data.height),
       time: Number(link.data.time),
       memo: link.data.memo as string | undefined,
     });
