@@ -1,8 +1,8 @@
 import { PageShell } from '../components/pageShell';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppContext } from '../utils/appContext';
-import DirTree from '../components/dirTree';
-import MemoFeed from '../components/memoFeed';
+import DirTree, { LeafSelection } from '../components/dirTree';
+import MemoFeed, { FeedHandoff } from '../components/memoFeed';
 import { IonIcon, useIonModal } from '@ionic/react';
 import { addCircleOutline } from 'ionicons/icons';
 import Send from './send';
@@ -48,7 +48,8 @@ const Explore = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fetchStartHeight, setFetchStartHeight] = useState<number>(0);
   const [canLoadMore, setCanLoadMore] = useState<boolean>(true);
-  const [focusTransactionId, setFocusTransactionId] = useState<string | null>(null);
+  const [focusHandoff, setFocusHandoff] = useState<FeedHandoff | null>(null);
+  const [treeSubFeedContext, setTreeSubFeedContext] = useState<LeafSelection | null>(null);
   const [peekGraphKey, setPeekGraphKey] = useState<string>('/');
   const whichKey = useMemo(() => toDisplayPath(peekGraphKey), [peekGraphKey]);
   const clickableSegments = useMemo(() => buildPathSegments(whichKey), [whichKey]);
@@ -219,6 +220,7 @@ const Explore = () => {
                 <div style={{ fontFamily: 'monospace, monospace', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <button type="button" onClick={() => {
                     setPeekGraphKey('/');
+                    setTreeSubFeedContext(null);
                     if (mode === 'feed') {
                       setMode('tree');
                     }
@@ -230,6 +232,7 @@ const Explore = () => {
                     <div key={segment.value} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <button type="button" onClick={() => {
                         setPeekGraphKey(segment.value);
+                        setTreeSubFeedContext(null);
                         if (mode === 'feed') {
                           setMode('tree');
                         }
@@ -244,27 +247,77 @@ const Explore = () => {
               {!!graph && (
                 <div style={{ flex: 1, minHeight: 0 }}>
                   {mode === 'tree' && (
-                    <DirTree
-                      forKey={whichKey}
-                      nodes={graph.nodes ?? []}
-                      links={graph.links ?? []}
-                      setForKey={setPeekGraphKey}
-                      onLeafOpen={(txId) => {
-                        setMode('feed');
-                        setFocusTransactionId(txId);
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        height: '100%',
                       }}
-                    />
+                    >
+                      <div style={{ flex: treeSubFeedContext ? '0 0 45%' : '1 1 auto', minHeight: 0 }}>
+                        <DirTree
+                          forKey={whichKey}
+                          nodes={graph.nodes ?? []}
+                          links={graph.links ?? []}
+                          setForKey={setPeekGraphKey}
+                          onLeafOpen={(selection) => {
+                            setMode('feed');
+                            setFocusHandoff({
+                              txId: selection.txId,
+                              path: selection.path,
+                              source: 'tree-leaf',
+                            });
+                            setPeekGraphKey(selection.path);
+                            setTreeSubFeedContext(null);
+                          }}
+                          onOpenSubFeed={(selection) => {
+                            setTreeSubFeedContext(selection);
+                          }}
+                        />
+                      </div>
+                      {treeSubFeedContext && (
+                        <div style={{ flex: '1 1 55%', minHeight: 0 }}>
+                          <MemoFeed
+                            transactions={transactions}
+                            onLoadMore={loadMore}
+                            canLoadMore={canLoadMore}
+                            focusHandoff={{
+                              txId: treeSubFeedContext.txId,
+                              path: treeSubFeedContext.path,
+                              source: 'tree-leaf',
+                            }}
+                            filterPath={treeSubFeedContext.path}
+                            onBackToMainFeed={(handoff) => {
+                              setMode('feed');
+                              setPeekGraphKey(handoff.path);
+                              setFocusHandoff(handoff);
+                              setTreeSubFeedContext(null);
+                            }}
+                            onSwitchNavigator={(nextKey) => {
+                              setNavigatorPublicKey(nextKey);
+                              setPeekGraphKey('/');
+                              setMode('feed');
+                              setTreeSubFeedContext(null);
+                            }}
+                            onActivePathChange={() => {}}
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
                   {mode === 'feed' && (
                     <MemoFeed
                       transactions={transactions}
                       onLoadMore={loadMore}
                       canLoadMore={canLoadMore}
-                      focusTransactionId={focusTransactionId}
+                      focusHandoff={focusHandoff}
+                      onFocusConsumed={() => setFocusHandoff(null)}
                       onSwitchNavigator={(nextKey) => {
                         setNavigatorPublicKey(nextKey);
                         setPeekGraphKey('/');
                         setMode('feed');
+                        setTreeSubFeedContext(null);
                       }}
                       onActivePathChange={(path) => {
                         if (mode === 'feed') {
