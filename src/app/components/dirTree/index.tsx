@@ -28,6 +28,11 @@ interface TreeNode {
   children: TreeNode[];
 }
 
+export interface LeafSelection {
+  path: string;
+  txId: string;
+}
+
 const isValidAbsolutePath = (value?: string) => {
   if (!value || !value.startsWith('/')) {
     return false;
@@ -159,12 +164,14 @@ function DirTree({
   nodes,
   links,
   onLeafOpen,
+  onOpenSubFeed,
 }: {
   forKey: string;
   setForKey: (pk: string) => void;
   nodes: GraphNode[];
   links: GraphLink[];
-  onLeafOpen?: (txId: string) => void;
+  onLeafOpen?: (selection: LeafSelection) => void;
+  onOpenSubFeed?: (selection: LeafSelection) => void;
 }) {
 
   const handleNodeFocus = useCallback(
@@ -303,6 +310,7 @@ function DirTree({
             onNodeClick={(node) => handleNodeFocus(node)}
             currentKey={forKey}
             onLeafOpen={onLeafOpen}
+            onOpenSubFeed={onOpenSubFeed}
           />
         )}
       </IonCardContent>
@@ -318,6 +326,7 @@ const TreeBranch = ({
   depth = 0,
   maxVisibleDepth = 1,
   onLeafOpen,
+  onOpenSubFeed,
 }: {
   branch: TreeNode;
   onNodeClick: (node: GraphNode) => void;
@@ -325,7 +334,8 @@ const TreeBranch = ({
   isRoot?: boolean;
   depth?: number;
   maxVisibleDepth?: number;
-  onLeafOpen?: (txId: string) => void;
+  onLeafOpen?: (selection: LeafSelection) => void;
+  onOpenSubFeed?: (selection: LeafSelection) => void;
 }) => {
 
   const trimmedPubkey = toDisplayPath(branch.node.pubkey);
@@ -356,9 +366,19 @@ const TreeBranch = ({
               return;
             }
             if (isCurrentNode && memoContent) {
-              if (onLeafOpen && branch.node.memoTransactionId) {
-                onLeafOpen(branch.node.memoTransactionId);
-                return;
+              if (branch.node.memoTransactionId) {
+                const selection = {
+                  path: trimmedPubkey,
+                  txId: branch.node.memoTransactionId,
+                };
+                if (onOpenSubFeed) {
+                  onOpenSubFeed(selection);
+                  return;
+                }
+                if (onLeafOpen) {
+                  onLeafOpen(selection);
+                  return;
+                }
               }
               setActiveMemo(memoContent);
               return;
@@ -397,6 +417,7 @@ const TreeBranch = ({
               depth={depth + 1}
               maxVisibleDepth={maxVisibleDepth}
               onLeafOpen={onLeafOpen}
+              onOpenSubFeed={onOpenSubFeed}
             />
           ))}
         </div>

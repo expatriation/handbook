@@ -24,6 +24,12 @@ type FeedEntry = {
   path: string | null;
 };
 
+export type FeedHandoff = {
+  txId: string;
+  path: string;
+  source: 'tree-subfeed' | 'tree-leaf';
+};
+
 const normalizePath = (value?: string) => {
   if (!value?.startsWith('/')) {
     return null;
@@ -123,27 +129,60 @@ const buildEntries = (transactions: Transaction[]) => {
   return entries.sort(byEntryOrder);
 };
 
+const isPathApplicable = (entryPath: string | null, filterPath: string) => {
+  if (!entryPath) {
+    return false;
+  }
+
+  if (filterPath === '/') {
+    return true;
+  }
+
+  return entryPath === filterPath || entryPath.startsWith(filterPath);
+};
+
 const MemoFeed = ({
   transactions,
   canLoadMore,
   onLoadMore,
-  focusTransactionId,
+  focusHandoff,
+  filterPath,
+  onBackToMainFeed,
+  onFocusConsumed,
   onSwitchNavigator,
   onActivePathChange,
 }: {
   transactions: Transaction[];
   canLoadMore: boolean;
   onLoadMore: () => void;
-  focusTransactionId?: string | null;
+  focusHandoff?: FeedHandoff | null;
+  filterPath?: string | null;
+  onBackToMainFeed?: (handoff: FeedHandoff) => void;
+  onFocusConsumed?: () => void;
   onSwitchNavigator: (publicKey: string) => void;
   onActivePathChange: (path: string | null) => void;
 }) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const loadRequestedForLengthRef = useRef<number>(-1);
+  const lastAppliedFocusIdRef = useRef<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [renderedCount, setRenderedCount] = useState(1);
 
   const feedEntries = useMemo(() => buildEntries(transactions), [transactions]);
+  const normalizedFilterPath = useMemo(() => normalizePath(filterPath ?? undefined), [filterPath]);
+  const effectiveEntries = useMemo(() => {
+    if (!normalizedFilterPath) {
+      return feedEntries;
+    }
+
+    return feedEntries.filter((entry) => {
+      if (entry.kind !== 'memo') {
+        return false;
+      }
+
+      return isPathApplicable(entry.path, normalizedFilterPath);
+    });
+  }, [feedEntries, normalizedFilterPath]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -152,19 +191,31 @@ const MemoFeed = ({
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
-  }, [transactions]);
+  }, [transactions, normalizedFilterPath]);
 
   useEffect(() => {
-    const activeEntry = feedEntries[activeIndex];
+    const activeEntry = effectiveEntries[activeIndex];
     onActivePathChange(activeEntry?.path ?? null);
-  }, [activeIndex, feedEntries, onActivePathChange]);
+  }, [activeIndex, effectiveEntries, onActivePathChange]);
 
   useEffect(() => {
+    if (!focusHandoff) {
+      lastAppliedFocusIdRef.current = null;
+    }
+  }, [focusHandoff]);
+
+  useEffect(() => {
+    const focusTransactionId = focusHandoff?.txId;
     if (!focusTransactionId || !scrollRef.current) {
       return;
     }
 
-    const index = feedEntries.findIndex(
+    const focusToken = `${focusHandoff?.source}:${focusHandoff?.path}:${focusTransactionId}`;
+    if (lastAppliedFocusIdRef.current === focusToken) {
+      return;
+    }
+
+    const index = effectiveEntries.findIndex(
       (entry) => entry.tx.txId === focusTransactionId && entry.kind === 'memo',
     );
     if (index < 0) {
@@ -175,25 +226,27 @@ const MemoFeed = ({
     const viewportHeight = scrollRef.current.clientHeight;
     scrollRef.current.scrollTo({ top: viewportHeight * index, behavior: 'smooth' });
     setActiveIndex(index);
-  }, [feedEntries, focusTransactionId]);
+    lastAppliedFocusIdRef.current = focusToken;
+    onFocusConsumed?.();
+  }, [effectiveEntries, focusHandoff, onFocusConsumed]);
 
   useEffect(() => {
-    if (activeIndex >= renderedCount - 1 && renderedCount < feedEntries.length) {
-      setRenderedCount((previous) => Math.min(feedEntries.length, previous + 1));
+    if (activeIndex >= renderedCount - 1 && renderedCount < effectiveEntries.length) {
+      setRenderedCount((previous) => Math.min(effectiveEntries.length, previous + 1));
       return;
     }
 
     if (
-      activeIndex >= feedEntries.length - 1 &&
+      activeIndex >= effectiveEntries.length - 1 &&
       canLoadMore &&
-      loadRequestedForLengthRef.current !== feedEntries.length
+      loadRequestedForLengthRef.current !== effectiveEntries.length
     ) {
-      loadRequestedForLengthRef.current = feedEntries.length;
+      loadRequestedForLengthRef.current = effectiveEntries.length;
       onLoadMore();
     }
-  }, [activeIndex, renderedCount, feedEntries.length, canLoadMore, onLoadMore]);
+  }, [activeIndex, renderedCount, effectiveEntries.length, canLoadMore, onLoadMore]);
 
-  const visibleEntries = feedEntries.slice(0, renderedCount);
+  const visibleEntries = effectiveEntries.slice(0, renderedCount);
 
   return (
     <div
@@ -213,6 +266,28 @@ const MemoFeed = ({
         scrollSnapType: 'y mandatory',
       }}
     >
+      {normalizedFilterPath && onBackToMainFeed && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 5, padding: '8px', background: 'var(--ion-background-color)' }}>
+          <IonButton
+            size="small"
+            fill="outline"
+            onClick={() => {
+              const activeEntry = effectiveEntries[activeIndex] ?? effectiveEntries[0];
+              if (!activeEntry) {
+                return;
+              }
+
+              onBackToMainFeed({
+                txId: activeEntry.tx.txId,
+                path: activeEntry.path ?? normalizedFilterPath,
+                source: 'tree-subfeed',
+              });
+            }}
+          >
+            Back to main feed
+          </IonButton>
+        </div>
+      )}
       {visibleEntries.map((entry, index) => {
         const { tx } = entry;
         const content = getMemoContent(tx.memo);
