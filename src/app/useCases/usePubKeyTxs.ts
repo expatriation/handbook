@@ -2,6 +2,17 @@ import { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../utils/appContext';
 import { Transaction } from '../utils/appTypes';
 
+export const filterOutgoingTransactions = (
+  pubKey: string,
+  transactions: Transaction[],
+): Transaction[] => {
+  if (!pubKey) {
+    return transactions;
+  }
+
+  return transactions.filter((tx) => tx.from === pubKey);
+};
+
 export const usePubKeyTransactions = (pubKey: string) => {
   const { requestPkTransactions } = useContext(AppContext);
   const [pkTransactions, setPKTransactions] = useState<Transaction[]>([]);
@@ -12,7 +23,7 @@ export const usePubKeyTransactions = (pubKey: string) => {
       if (pubKey) {
         cleanup =
           requestPkTransactions(pubKey, (pkx) => {
-            setPKTransactions(pkx);
+            setPKTransactions(filterOutgoingTransactions(pubKey, pkx));
           }) ?? cleanup;
       }
     }, 0);
